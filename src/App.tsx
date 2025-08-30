@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { Card, DatePicker, Button, Form, Typography, Space } from "antd";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
+import { Dayjs } from "dayjs";
+
+const { Title } = Typography;
+const { RangePicker } = DatePicker;
 
 type Character = {
   name: string;
@@ -16,8 +21,7 @@ type HouseCount = {
 const App: React.FC = () => {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [filteredData, setFilteredData] = useState<HouseCount[]>([]);
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
 
   useEffect(() => {
     fetch("https://hp-api.onrender.com/api/characters")
@@ -37,8 +41,7 @@ const App: React.FC = () => {
   };
 
   const handleFilter = () => {
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
+    const [start, end] = dateRange;
 
     const houses = ["Gryffindor", "Slytherin", "Hufflepuff", "Ravenclaw"];
     const counts: Record<string, number> = {
@@ -55,8 +58,8 @@ const App: React.FC = () => {
           if (!dob) return;
 
           if (
-              (!start || dob >= start) &&
-              (!end || dob <= end)
+              (!start || dob >= start.toDate()) &&
+              (!end || dob <= end.toDate())
           ) {
             counts[c.house] = (counts[c.house] || 0) + 1;
           }
@@ -71,39 +74,41 @@ const App: React.FC = () => {
   };
 
   return (
-      <div style={{ padding: "20px" }}>
-        <h2>Студенты по факультетам (Harry Potter API)</h2>
-        <div style={{ marginBottom: "10px" }}>
-          <label>
-            Дата рождения с:{" "}
-            <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-            />
-          </label>
-          <label style={{ marginLeft: "10px" }}>
-            по:{" "}
-            <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-            />
-          </label>
-          <button onClick={handleFilter} style={{ marginLeft: "10px" }}>
-            Построить график
-          </button>
-        </div>
+      <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
+        <Title level={2} style={{ textAlign: "center" }}>
+            Студенты Хогвартса по факультетам
+        </Title>
+
+        <Card style={{ marginBottom: 20 }}>
+          <Form layout="inline" style={{ justifyContent: "center" }}>
+            <Form.Item label="Диапазон дат рождения">
+              <RangePicker
+                  value={dateRange}
+                  onChange={(values) => setDateRange(values as [Dayjs, Dayjs])}
+                  format="DD-MM-YYYY"
+              />
+            </Form.Item>
+            <Form.Item>
+              <Button type="primary" onClick={handleFilter}>
+                Построить график
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
 
         {filteredData.length > 0 && (
-            <BarChart width={600} height={400} data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="house" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="count" fill="#8884d8" />
-            </BarChart>
+            <Card>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <BarChart width={800} height={400} data={filteredData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="house" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#1890ff" />
+                </BarChart>
+              </Space>
+            </Card>
         )}
       </div>
   );
